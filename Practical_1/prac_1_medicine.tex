@@ -1,0 +1,268 @@
+
+\documentclass[conference]{IEEEtran}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{url}
+
+\title{ECG Heartbeat Classification using a Convolutional Neural Network}
+
+\author{
+	\IEEEauthorblockN{Nguyen Hoang Tung}
+	\IEEEauthorblockA{
+		Student ID: 22BA13318 \\
+		University of Science and Technology of Ha Noi (USTH) \\
+		Email: tungtimo0808@gmail.com
+	}
+}H
+
+\begin{document}
+	
+	\maketitle	
+	\begin{abstract}
+		This work studies ECG heartbeat classification using deep learning on the PTB Diagnostic ECG dataset. A 1D CNN is used to classify heartbeats into normal and abnormal classes. The model achieves about 92\% accuracy and an AUC of 0.98, showing strong performance.
+	\end{abstract}
+	
+	
+	\section{Exploratory Data Analysis}
+	\subsection{Dataset Overview}
+	
+	In this study, we use the PTB Diagnostic ECG dataset for ECG heartbeat classification. The dataset is provided in two separate files: one for normal heartbeats and one for abnormal heartbeats.
+	
+	Each file contains ECG signals with the following structure:
+	
+	\begin{itemize}
+		\item Each row represents one ECG heartbeat.
+		\item Each column represents one time step of the ECG signal.
+		\item There are 188 signal columns and 1 label column.
+	\end{itemize}
+	
+	Therefore, each sample has a total of 189 columns:
+	
+	\begin{itemize}
+		\item 188 values corresponding to the ECG signal.
+		\item 1 value indicating the class label.
+	\end{itemize}
+	
+	After loading the data:
+	
+	\begin{itemize}
+		\item The normal dataset contains approximately 10,500 samples.
+		\item The abnormal dataset contains approximately 4,000 samples.
+		\item In total, the dataset consists of about 14,500 ECG heartbeats.
+	\end{itemize}
+	
+	
+	\subsection{Class Distribution}
+	
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{C:/Users/Lenovo/Downloads/histogram}
+	\caption{}
+	\label{fig:histogram}
+\end{figure}
+	
+
+	
+	
+	
+	Figure~\ref{fig:class_distribution} shows the number of samples in each class in the PTB Diagnostic ECG dataset.
+	
+	From the figure, it can be observed that the dataset is imbalanced:
+	
+	\begin{itemize}
+		\item Normal class: approximately 10,500 samples.
+		\item Abnormal class: approximately 4,000 samples.
+	\end{itemize}
+	
+	This class imbalance is an important issue to consider when training and evaluating the classification model, as it may bias the model toward the majority class if not properly handled.
+	
+	
+	\subsection{Mean ECG Signal Comparison}
+	
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{C:/Users/Lenovo/Downloads/mean}
+	\caption{}
+	\label{fig:mean}
+\end{figure}
+
+	
+	Figure~\ref{fig:mean_ecg} shows the average ECG signal for both normal and abnormal classes.
+	
+	Although both signals share a similar overall shape, there are clear differences in amplitude and waveform in several regions of the signal. This indicates that the raw ECG signals contain discriminative information that can be effectively exploited for classification.
+	
+	\subsection{Conclusion and Insights from EDA}
+	
+	From the exploratory data analysis, we can conclude that:
+	
+	\begin{itemize}
+		\item The dataset consists of 1D ECG signals with 188 time steps.
+		\item The total number of samples is about 14,500.
+		\item The dataset is imbalanced, with many more normal samples than abnormal ones.
+		\item There are visible differences between the average normal and abnormal ECG signals.
+	\end{itemize}
+	
+	
+	Based on these observations, we can draw several important insights:
+	
+	\begin{itemize}
+		\item \textbf{Class imbalance is an important challenge.} Because the number of normal samples is much larger, a simple model may be biased toward predicting the normal class. Therefore, accuracy alone is not enough, and we also need to look at recall and F1-score, especially for the abnormal class.
+		
+		\item \textbf{Raw ECG signals already contain useful patterns.} The difference between the mean signals shows that the waveform shape and amplitude already carry important information. This means that the model does not need handcrafted features and can learn directly from raw signals.
+		
+		\item \textbf{Local patterns in time are important.} The ECG signal contains sharp peaks and local changes such as the QRS complex. This suggests that convolutional layers are suitable for capturing these local patterns.
+		
+		\item \textbf{The problem is suitable for deep learning.} The signal is long (188 time steps) and has complex shapes. This makes the problem difficult for simple methods, but suitable for deep learning models such as CNN.
+		
+	\end{itemize}
+	
+	These insights confirm that the dataset is suitable for training a deep learning model and also support the choice of a CNN-based architecture and the use of medical-oriented evaluation metrics.
+	
+	\section{Model Implementation}
+	
+	In this work, we implement a 1D Convolutional Neural Network (1D CNN) for binary classification of ECG heartbeats into normal and abnormal classes. The model is implemented in Python using TensorFlow and Keras.
+	
+	\subsection{Data Splitting and Input Format}
+	
+	After loading and merging the normal and abnormal datasets, the data is shuffled and split into training and test sets using an 80/20 ratio. Stratified splitting is applied to keep the same class distribution in both sets. The test set is kept completely separate and is only used for the final evaluation.
+	
+	\subsection{Handling Class Imbalance}
+	
+	Because the dataset is imbalanced, class weights are computed using the balanced strategy. These weights are used during training to reduce the bias toward the majority class and help the model learn both classes more fair.
+	
+	\subsection{Network Architecture}
+	
+	The proposed 1D CNN architecture consists of the following components:
+	
+	\begin{itemize}
+		\item A first Conv1D layer with 32 filters to extract low-level features from the ECG signal.
+		\item A MaxPooling1D layer to reduce the temporal resolution.
+		\item A second Conv1D layer with 64 filters followed by another MaxPooling1D layer.
+		\item A third Conv1D layer with 128 filters to learn higher-level representations.
+		\item A Global Average Pooling layer to convert feature maps into a fixed-length feature vector.
+		\item A fully connected Dense layer with 64 units and ReLU activation.
+		\item A Dropout layer to reduce overfitting.
+		\item A final Dense layer with a Sigmoid activation function to output the probability of the abnormal class.
+	\end{itemize}
+	
+	The total number of trainable parameters in the model is approximately 43,000, which makes the network lightweight and efficient.
+	
+	\subsection{Training Configuration}
+	
+	The model is trained using the Adam optimizer and the binary cross-entropy loss function, which is suitable for binary classification problems. The batch size is set to 128 and the maximum number of epochs is 30. During training, 20\% of the training data is used as a validation set for monitoring the training process.
+	
+	Early stopping is applied based on the validation AUC score. The training process is stopped if the validation AUC does not improve for 5 consecutive epochs, and the best model weights are restored. The validation set is only used for model selection, while the final performance is reported on the independent test set.
+	
+	\subsection{Prediction and Decision Rule}
+	
+	After training, the model outputs a probability score for each sample in the test set. A threshold of 0.5 is used to convert this probability into a class label: if the output is greater than 0.5, the sample is classified as abnormal; otherwise, it is classified as normal.
+	
+	
+	\section{Experimental Results}
+	
+	\subsection{Classification Performance on the Test Set}
+	The performance of the proposed model is evaluated on the independent test set using standard metrics including precision, recall, F1-score, and accuracy. Table~\ref{tab:classification_report} summarizes the classification results.
+	
+	\begin{table}[H]
+		\centering
+		\caption{Classification report on the test set.}
+		\label{tab:classification_report}
+		\begin{tabular}{lcccc}
+			\hline
+			\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-score} & \textbf{Support} \\
+			\hline
+			Normal (0)   & 0.79 & 0.95 & 0.86 & 809  \\
+			Abnormal (1) & 0.98 & 0.90 & 0.94 & 2102 \\
+			\hline
+			Accuracy     &      &      & 0.92 & 2911 \\
+			Macro Avg    & 0.89 & 0.93 & 0.90 & 2911 \\
+			Weighted Avg & 0.93 & 0.92 & 0.92 & 2911 \\
+			\hline
+		\end{tabular}
+	\end{table}
+	
+	Table~\ref{tab:classification_report} shows the classification performance of the proposed model on the independent test set. The model achieves an overall accuracy of 92\%, which indicates good general performance for ECG heartbeat classification.
+	
+	For the \textbf{Normal} class, the model reaches a high recall of 95\%, but the precision is lower (79\%), which means that some abnormal samples are misclassified as normal. For the \textbf{Abnormal} class, the model achieves a very high precision of 98\% and a recall of 90\%, showing that most abnormal heartbeats are correctly detected, although a small number of cases are still missed.
+	
+	The macro-average and weighted-average F1-scores (90\% and 92\%) confirm stable overall performance despite the class imbalance. In the medical context, detecting abnormal cases is critical,so improving the recall for the abnormal class remains an important direction for future work.
+	
+	
+	
+	\subsection{Evaluation on the Test Set Using ROC Curve}
+	The table below show that ROC Curve for ECG:
+	
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{C:/Users/Lenovo/Downloads/ROCAUC}
+	\caption{}
+	\label{fig:rocauc}
+\end{figure}
+
+	
+	In addition to standard classification metrics, the Receiver Operating Characteristic (ROC) curve is used to evaluate the model performance on the test set. The ROC curve is plot using the predicted probabilities of the test samples, and the Area Under the Curve (AUC) is computed. As shown in Figure~\ref{fig:roc_auc}, the proposed model achieves an AUC of approximately 0.98, which indicates a strong ability to distinguish between normal and abnormal ECG heartbeats.
+
+	
+	\section{Comparison}
+	
+	In this section, we compare the performance of our proposed method with a reference approach reported in the literature. We use the work of Kachuee et al. (2018), which also evaluates ECG classification on the PTB Diagnostic ECG dataset, as the main reference.
+	
+	\subsection{Quantitative Comparison}
+	
+	Table~\ref{tab:comparison} shows the comparison between our method and the reference method in terms of accuracy, precision, and recall.
+	
+	\begin{table}[H]
+		\centering
+		\caption{Comparison with the reference method on the PTB dataset.}
+		\label{tab:comparison}
+		\begin{tabular}{lccc}
+			\hline
+			\textbf{Method} & \textbf{Accuracy (\%)} & \textbf{Precision (\%)} & \textbf{Recall (\%)} \\
+			\hline
+			Kachuee et al. (2018) & 95.9 & 95.2 & 95.1 \\
+			Proposed CNN (ours)  & 92.0 & 98.0 & 90.0 \\
+			\hline
+		\end{tabular}
+	\end{table}
+	
+	From the table, it can be seen that our method achieves a lower overall accuracy compared to the reference method. However, our model reaches a very high precision of 98\% for the abnormal class, which means that most samples predicted as abnormal are indeed correct. The recall of the abnormal class is 90\%, which is lower than the 95.1\% reported in the reference method.
+	
+	\subsection{Discussion}
+	
+	The difference in performance can be explained by the difference in model complexity and training strategy. The method proposed by Kachuee et al. uses a deeper convolutional neural network with residual connections and applies transfer learning. In contrast, our model is a lightweight 1D CNN with about 43k parameters without any pretraining.
+	
+	Although our method does not outperform the state-of-the-art approach, it still achieves competitive performance with a much simpler architecture. This shows that even a relatively small CNN trained on raw ECG signals can provide good classification results.
+	
+	Moreover, considering the high AUC value (approximately 0.98) achieved by our model, the ranking ability of the classifier is very strong. The lower accuracy and recall are mainly due to the fixed decision threshold (0.5), which could be further optimized in future work.
+	
+	Overall, this comparison confirms that the proposed method provides a good trade-off between performance and model complexity.
+	
+	\section{Conclusion}
+	
+	In this work, we studied the problem of ECG heartbeat classification using a deep learning approach. We used the PTB Diagnostic ECG dataset to classify heartbeats into normal and abnormal classes and proposed a lightweight 1D Convolutional Neural Network trained directly on raw ECG signals.
+	
+	Experimental results on the independent test set show that the proposed model achieves an accuracy of 92\% and an AUC of approximately 0.98. The high AUC value indicates that the model has a strong ability to distinguish between normal and abnormal heartbeats, while the classification results confirm that most abnormal cases are correctly detected.
+	
+	We also compared our method with a state-of-the-art approach and showed that although our model does not outperform more complex deep architectures, it still achieves competitive performance with a much simpler and more efficient structure. This makes the proposed approach suitable for practical applications where computational efficiency is important.
+	
+	In future work, the performance can be further improved by using deeper architectures, applying transfer learning, or optimizing the decision threshold to increase the recall for abnormal cases.
+	
+	
+	
+	\begin{thebibliography}{2}
+		
+		\bibitem{kachuee2018}
+		M. Kachuee, S. Fazeli, and M. Sarrafzadeh, 
+		``ECG heartbeat classification: A deep transferable representation,'' 
+		\textit{Proceedings of the IEEE International Conference on Healthcare Informatics (ICHI)}, 
+		2018, pp. 443--444.
+		
+		\bibitem{kaggle_ptb}
+		S. Fazeli, 
+		``ECG Heartbeat Categorization Dataset,'' 
+		Kaggle, 2018. [Online]. Available: \url{https://www.kaggle.com/datasets/shayanfazeli/heartbeat}
+		
+	\end{thebibliography}
+	
+	
+\end{document}
